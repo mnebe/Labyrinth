@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import javax.net.ssl.SSLContext;
 import util.Punkt;
 
 /**
@@ -18,27 +17,33 @@ public class Labyrinth {
     
     private LinkedList<Punkt> startPunkte;
     private LinkedList<Punkt> endPunkte;
+    private LinkedList<Punkt> allePunkte;
     
     final boolean BESUCHT = true;
     final boolean OFFEN = false;
     
     final int[] OBEN   =   {0,1};
-    final int[] RECHTS =   {1,0};
     final int[] UNTEN  =   {0,-1};
+    final int[] RECHTS =   {1,0};
     final int[] LINKS  =   {-1,0};
     
     private boolean[][] besucht;
-   
+    
     public Labyrinth(int breite, int hoehe) {   
         System.out.println(breite);
         System.out.println(hoehe);
         
-        startPunkte = new LinkedList<Punkt>();
-        endPunkte = new LinkedList<Punkt>();
+        startPunkte     = new LinkedList<>();
+        endPunkte       = new LinkedList<>();
+        allePunkte      = new LinkedList<>();
         
         besucht = new boolean[breite+1][hoehe+1];
         
-        // Zunächst alle Punkte auf false initialisieren
+        /** 
+         * Zunächst alle Punkte auf false initialisieren
+         * 
+         * Zeitaufwand: breite*hoehe
+         */
         for(int x=0;x<=breite;x++){
             for(int y=0;y<=hoehe;y++){
                 besucht[x][y] = OFFEN;
@@ -46,55 +51,67 @@ public class Labyrinth {
         }
         
         /**
-         *  RÄNDER 
-         */
-        
-        // Unten
-        startPunkte.add(new Punkt(0,hoehe));
-        endPunkte.add(new Punkt(breite,hoehe));
-        // Oben
-        startPunkte.add(new Punkt(0,0));
-        endPunkte.add(new Punkt(breite,0));
-        // Links
-        startPunkte.add(new Punkt(0,0));
-        endPunkte.add(new Punkt(0,hoehe));
-        // Rechts
-        startPunkte.add(new Punkt(breite,0));
-        endPunkte.add(new Punkt(breite,hoehe));
+         *  RANDELEMENTE
+         * 
+         *  Zeitaufwand: 4*breite + 4*hoehe
+         */     
+        for(int x=0;x<breite;x++){
+            // Oben
+            startPunkte.add(new Punkt(x,0));
+            endPunkte.add(new Punkt(x+1,0));
+            // Unten
+            startPunkte.add(new Punkt(x,hoehe));
+            endPunkte.add(new Punkt(x+1,hoehe));
+        }        
+        for(int y=0;y<hoehe;y++){
+            // Links
+            startPunkte.add(new Punkt(0,y));
+            endPunkte.add(new Punkt(0,y+1));
+            // Rechts
+            startPunkte.add(new Punkt(breite,y));
+            endPunkte.add(new Punkt(breite,y+1));
+        }
+
+        allePunkte.addAll(startPunkte);
+        allePunkte.addAll(endPunkte);
         
         /**
          *  LABYRITNH
          */
-        int startX = 0;
-        int startY = 0;
-        
-        int x = 0;
-        int y = 0;
+        int index = (int)Math.round(Math.random()*(allePunkte.size()-1));
+        int x = allePunkte.get(index).gibX();
+        int y = allePunkte.get(index).gibY();
         
         int newX = 0;
         int newY = 0;
+                 
+        int maxWandelemente = (breite +1)*(hoehe +1);
         
-        int maxIt = (breite +1)*(hoehe +1);
-        int it = 0;
+        boolean walk;
+        int iterationcount = 0;
         
-        boolean walk = true;
-        
-        while(it < 2*maxIt){
-            
-            // 1. Zufälligen angrenzenden Punkt wählen.            
+        /**
+         * Raster mit Wandelementen füllen, bis die maximale Anzahl Elemente erreicht ist.
+         * 
+         * Zeitaufwand: 
+         */
+        while(startPunkte.size() < maxWandelemente){
+            /**
+             * 1. Zufälligen, freien angrenzenden Punkt wählen.     
+             * 
+             * Zeitaufwand: konstant
+             */
             walk = false;
             List<int[]> dirs = Arrays.asList(OBEN, UNTEN, RECHTS, LINKS);
-            Collections.shuffle(dirs);            
+            Collections.shuffle(dirs);  
             for(int i=0;i<4;i++){
                 int[] dir = dirs.get(i);
                 newX = x+dir[0];
-                newY = y+dir[1];
-                
-                // Fallse wir aus dem Raster fallen, weiter in der Schleife
+                newY = y+dir[1];                
+                // Falls wir aus dem Raster fallen, weiter in der Schleife
                 if(newX < 1 || newY < 1 || newX > breite-1 || newY > hoehe-1){
                     continue;
-                }
-                
+                }                
                 // Wenn wir einen offenen Punkt haben: hingehen.
                 if(besucht[newX][newY] == OFFEN){
                     besucht[newX][newY] = BESUCHT;
@@ -105,33 +122,25 @@ public class Labyrinth {
             
             if(walk){
                 // 2. Linie zum neuen Punkt
-                startPunkte.add(new Punkt(x,y));
-                endPunkte.add(new Punkt(newX,newY));
+                Punkt sp = new Punkt(x,y);
+                Punkt ep = new Punkt(newX,newY);
+                startPunkte.add(sp);
+                endPunkte.add(ep);
+                allePunkte.add(sp);
+                allePunkte.add(ep);
                 
                 x = newX;
                 y = newY;
             }else{
-               // 3. Falls keine Bewegungsmöglichkeit mehr, zurückspringen.
-                x = startX+1;
-                y = startY;
-                                
-                if(x > breite){
-                    x  = 0;
-                    y += 1;
-                }
-                if(y > hoehe)
-                        break;
-                                
-                besucht[x][y] = BESUCHT;
-                startX = x;
-                startY = y;
-            }            
-            
-            // 4. Im Raster weiter gehen
-            
-            it++;
+                // 3. Falls keine Bewegungsmöglichkeit mehr, zufälligen besuchten.
+                index = (int)Math.round(Math.random()*(allePunkte.size()-1));
+                x = allePunkte.get(index).gibX();
+                y = allePunkte.get(index).gibY();
+                allePunkte.remove(index);
+            }  
+            iterationcount += 1;
         }
-        
+        System.out.println("Iterationen: "+iterationcount);
         
         this.breite = breite;
         this.hoehe = hoehe;
