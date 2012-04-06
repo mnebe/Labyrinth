@@ -1,7 +1,7 @@
 package labyrinth;
 
 /**
- *
+ *  MATTHIAS HAT DEN GROESSTEN
  * @author Matthias
  */
 public class Labyrinth {
